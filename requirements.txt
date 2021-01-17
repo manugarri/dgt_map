@@ -1,0 +1,6 @@
+aiofiles
+jinja2
+fastapi
+httpx
+openrouteservice
+uvicorn

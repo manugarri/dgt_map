@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Spain DGT traffic Events</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+       integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+       crossorigin=""/>
+     <!-- Make sure you put this AFTER Leaflet's CSS -->
+     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+       integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+       crossorigin="">
+     </script>
+
+     <!-- Additional Leaflet Tile providers-->
+     <script src="https://ghcdn.rawgit.org/leaflet-extras/leaflet-providers/master/leaflet-providers.js"></script>
+
+     <!--https://erikflowers.github.io/weather-icons/ -->
+    <link href="{{ url_for('static', path='/css/weather-icons.min.css') }}" rel="stylesheet">
+    <script>
+            MB_ACCESS_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+    </script>
+
+    <style>
+        #mapid {
+            height: 1200px;
+            width: 1200px;
+            position: relative;
+            outline: currentcolor none medium;
+        }
+        .leaflet-popup {
+            background-color: white;
+        }
+
+        .icon-red {
+            background-color: #b80404;
+        }
+        .marker-pin {
+          width: 30px;
+          height: 30px;
+          border-radius: 50% 50% 50% 0;
+          position: absolute;
+          transform: rotate(-45deg);
+          left: 50%;
+          top: 50%;
+          margin: -15px 0 0 -15px;
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            margin: 3px 0 0 3px;
+            background: #fff;
+            position: absolute;
+            border-radius: 50%;
+         }
+
+        .custom-div-icon i {
+           position: absolute;
+           width: 22px;
+           font-size: 22px;
+           left: 0;
+           right: 0;
+           margin: 10px auto;
+           text-align: center;
+        }
+
+        .custom-div-icon i.awesome {
+           margin: 12px auto;
+           font-size: 17px;
+        }
+    </style>
+
+</head>
+<body>
+ <div id="input">
+   <input type="text" placeholder="Origin search term" id="origin_text">
+   <input type="text" placeholder="Destination search term" id="destination_text">
+   <button type="button" onclick="route();">GO!</button>
+ </div>
+ <div id="mapid"></div>
+ <script>
+     const roadEventColor = {
+         "VERDE": "#00e335",
+         "AMARILLO": "#fad72a",
+         "ROJO":"#b80404",
+         "NEGRO": "#000000",
+         "NO APLICA": "#878787",
+     }
+    //DGT icons are horrible
+    //Here they are http://infocar.dgt.es/etraffic/img/iconosIncitar/
+    //We can use something nicer
+    const iconPrefixes = {
+        "INC_MET_WIS": "wi-strong-wind",
+        "INC_MET_RAI": "wi-rain",
+        "INC_MET_SFL": "wi-snow",
+        "INC_MET_RIC": "wi-snowflake-cold",
+        "INC_MET_FOC": "wi-fog",
+        "INC_MET_FOG": "wi-fog",
+        "INC_OHZ_VAC":  "wi-time-3",
+        "INC_OHZ":"wi-time-3",
+        "MED_REG": "wi-refresh-alt",
+        "MED_RES":"wi-train",
+    }
+
+    function getDGTEvents(){
+      const xhr = new XMLHttpRequest();
+      xhr.responseType = 'json';
+      xhr.open('GET', '/events');
+
+      xhr.onreadystatechange = () => {
+        if(xhr.readyState === 4){
+          if(xhr.status === 200 || xhr.status === 204){
+           var dgt_events = xhr.response
+           for (const e of dgt_events) {
+               var iconClass = "wi-na"
+               var eventIcon = e["icono"]
+                for (const [iconPrefix, prefixClass] of Object.entries(iconPrefixes)) {
+                    if (eventIcon.startsWith(iconPrefix)) {
+                        iconClass = prefixClass
+                    }
+                }
+                var icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style='background-color:${roadEventColor[e["nivel"]]};' class='marker-pin'></div><i class='wi ${iconClass}'></i>`,
+                    iconSize: [30, 42],
+                    iconAnchor: [15, 42]
+                });
+
+                var marker = L.marker([e["lat"], e["lng"]], {
+                        icon: icon
+                })
+                .addTo(mymap)
+                .bindPopup(e["descripcion"]);
+            }
+          }
+          else{
+            errors = xhr.response.errors;
+            console.log(errors)
+          }
+        }
+      };
+      xhr.send();
+    }
+
+
+    //wrapper for route in case a valid Enter event
+    function routeEnter(e){
+        if (e.code === 'Enter'){
+          route()
+       }
+    }
+    function route(){
+      const xhr = new XMLHttpRequest();
+      xhr.responseType = 'json';
+
+      var originText = document.getElementById("origin_text").value;
+      var destinationText = document.getElementById("destination_text").value;
+      let url = new URL(`${window.location.href}route`);
+      url.searchParams.set('origin_text', originText);
+      url.searchParams.set('destination_text', destinationText);
+      xhr.open('GET', url);
+      xhr.onreadystatechange = () => {
+        if(xhr.readyState === 4){
+          if(xhr.status === 200 || xhr.status === 204){
+              routeLayer.clearLayers()
+              var response = xhr.response
+              bbox = response.bbox
+              bounds = [[bbox[3], bbox[2]],[bbox[1], bbox[0]]]
+              mymap.fitBounds(bounds);
+              routeLayer.addData(response);
+          }
+          else{
+            errors = xhr.response.errors;
+            console.log(errors)
+          }
+        }
+      };
+      xhr.send();
+    }
+
+    var mymap = L.map('mapid').setView([40.0, -4.0], 7);
+    var routeLayer = L.geoJSON().addTo(mymap);
+    var tile_layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mymap);
+
+    tile_layer.on("load", getDGTEvents);
+    document.addEventListener('keydown', routeEnter);
+ </script>
+</body>
+</html>
