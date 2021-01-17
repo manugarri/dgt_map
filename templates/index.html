@@ -24,6 +24,10 @@
     </script>
 
     <style>
+        #container {
+          margin: auto;
+          width: 50%;
+        }
         #mapid {
             height: 1200px;
             width: 1200px;
@@ -72,16 +76,61 @@
            margin: 12px auto;
            font-size: 17px;
         }
+
+        /*Legend specific*/
+        .legend {
+          padding: 6px 8px;
+          font: 14px Arial, Helvetica, sans-serif;
+          background: white;
+          background: rgba(255, 255, 255, 0.8);
+          /*box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);*/
+          /*border-radius: 5px;*/
+          line-height: 24px;
+          color: #555;
+        }
+        .legend h4 {
+          text-align: center;
+          font-size: 16px;
+          margin: 2px 12px 8px;
+          color: #777;
+        }
+
+        .legend span {
+          position: relative;
+          bottom: 3px;
+        }
+
+        .legend i {
+          width: 18px;
+          height: 18px;
+          font-size: 20px;
+          float: left;
+          margin: 0 8px 0 0;
+          opacity: 0.7;
+        }
+
+        .legend i.icon {
+          background-size: 18px;
+          background-color: rgba(255, 255, 255, 1);
+        }
+
+
     </style>
 
 </head>
 <body>
+<div id="container">
+ <div id="preamble">
+   <h1>Spain traffic incident map</h1>
+   <p>A simpler alternative to the official <a href="http://infocar.dgt.es/etraffic/" target="_blank">horrendous DGT (Spain's Traffic Authority) map</a></p>
+   <p>You can plot simple routes on the boxes below (via <a href="https://openrouteservice.org/services/" target="_blank">OpenRoute</a>)</p>
  <div id="input">
-   <input type="text" placeholder="Origin search term" id="origin_text">
-   <input type="text" placeholder="Destination search term" id="destination_text">
+   <input type="text" placeholder="Origin" id="origin_text">
+   <input type="text" placeholder="Destination" id="destination_text">
    <button type="button" onclick="route();">GO!</button>
- </div>
+  </div>
  <div id="mapid"></div>
+</div>
  <script>
      const roadEventColor = {
          "VERDE": "#00e335",
@@ -187,6 +236,32 @@
     var tile_layer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mymap);
+
+    /*https://codepen.io/haakseth/pen/KQbjdO*/
+    var legend = L.control({ position: "bottomleft" });
+
+    legend.onAdd = function(map) {
+      var div = L.DomUtil.create("div", "legend");
+      div.innerHTML += "<h4>Incident type</h4>";
+      div.innerHTML += '<i class="wi wi-strong-wind"></i><span>Wind</span><br>';
+      div.innerHTML += '<i class="wi wi-rain"></i><span>Rain</span><br>';
+      div.innerHTML += '<i class="wi wi-snow"></i><span>Snow</span><br>';
+      div.innerHTML += '<i class="wi wi-snowflake-cold"></i><span>Ice</span><br>';
+      div.innerHTML += '<i class="wi wi-fog"></i><span>Fog</span><br>';
+      div.innerHTML += '<i class="wi wi-time-3"></i><span>Block</span><br>';
+      div.innerHTML += '<i class="wi wi-refresh-alt"></i><span>Detour</span><br>';
+      div.innerHTML += '<i class="wi wi-train"></i><span>Restricted traffic</span><br>';
+      div.innerHTML += '<i class="wi wi-na"></i><span>Others</span><br>';
+
+      div.innerHTML += "<br><h4>Incident Risk Level</h4>";
+      div.innerHTML += '<i style="background-color:green"></i><span>Low</span><br>';
+      div.innerHTML += '<i style="background-color:yellow"></i><span>Moderate</span><br>';
+      div.innerHTML += '<i style="background-color:red"></i><span>High</span><br>';
+      div.innerHTML += '<i style="background-color:black"></i><span>Severe</span><br>';
+      return div;
+    };
+
+    legend.addTo(mymap);
 
     tile_layer.on("load", getDGTEvents);
     document.addEventListener('keydown', routeEnter);
