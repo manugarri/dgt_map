@@ -1,4 +1,4 @@
-# A better Road Conditions map for Spain
+# A better Weather and traffic Conditions map for Spain's roads
 
 [Blog post](http://blog.manugarri.com/making-a-simple-better-road-conditions-map-for-spain/)
 You can see the map live [here](http://dgt.manugarri.com)
